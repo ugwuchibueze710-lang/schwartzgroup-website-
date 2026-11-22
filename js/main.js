@@ -24,117 +24,26 @@
   }, { threshold: 0.14 }) : null;
   $$('.reveal').forEach(el => io ? io.observe(el) : el.classList.add('in'));
 
-  /* ---------- Neon sign + wall switch ---------- */
-  const hero = $('.hero');
-  if (hero) {
-    let on = false, busy = false, actx = null;
-    const stateTxt = $('.switch-hint .state');
+  /* ---------- Neon power-on: buzz, blink twice, then stay on (every page) ---------- */
+  (function powerOn() {
+    const body = document.body;
+    if (reduce) { body.classList.add('sign-on'); return; }
+    // on-off pattern of a real neon tube striking: blink, blink, catch, steady
+    const steps = [[true, 90], [false, 140], [true, 70], [false, 260], [true, 50], [false, 60], [true, 0]];
+    let i = 0;
+    const run = () => { const [on, wait] = steps[i++]; body.classList.toggle('sign-on', on); if (i < steps.length) setTimeout(run, wait); };
+    setTimeout(run, 450);
+  })();
 
-    function clickSound(isOn) {
-      try {
-        actx = actx || new (window.AudioContext || window.webkitAudioContext)();
-        const t = actx.currentTime;
-        // mechanical toggle "clack": short filtered noise burst + low thump
-        const len = Math.floor(actx.sampleRate * 0.035);
-        const buf = actx.createBuffer(1, len, actx.sampleRate);
-        const d = buf.getChannelData(0);
-        for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 6);
-        const src = actx.createBufferSource(); src.buffer = buf;
-        const bp = actx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = isOn ? 2600 : 2100; bp.Q.value = 1.2;
-        const g = actx.createGain(); g.gain.value = 0.55;
-        src.connect(bp).connect(g).connect(actx.destination); src.start(t);
-        const o = actx.createOscillator(), og = actx.createGain();
-        o.frequency.setValueAtTime(140, t); o.frequency.exponentialRampToValueAtTime(60, t + 0.05);
-        og.gain.setValueAtTime(0.25, t); og.gain.exponentialRampToValueAtTime(0.001, t + 0.06);
-        o.connect(og).connect(actx.destination); o.start(t); o.stop(t + 0.07);
-        if (isOn) { // brief neon transformer buzz while it strikes
-          const b = actx.createOscillator(), bg = actx.createGain();
-          b.type = 'sawtooth'; b.frequency.value = 120;
-          bg.gain.setValueAtTime(0.0001, t + 0.05); bg.gain.exponentialRampToValueAtTime(0.025, t + 0.1);
-          bg.gain.exponentialRampToValueAtTime(0.0001, t + 0.75);
-          const lp = actx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 900;
-          b.connect(lp).connect(bg).connect(actx.destination); b.start(t + 0.05); b.stop(t + 0.8);
-        }
-      } catch (e) { /* audio not available */ }
-    }
-
-    function setState(v) {
-      on = v;
-      hero.classList.toggle('on', on);
-      document.body.classList.toggle('sign-on', on);
-      try { localStorage.setItem('sgNeon', on ? '1' : '0'); } catch (e) {}
-      $$('[data-switch]').forEach(b => b.setAttribute('aria-pressed', on));
-      if (stateTxt) stateTxt.textContent = on ? 'Sign is on. Flip the switch by the door to turn it off.' : 'Flip the switch by the front door to light the sign.';
-    }
-
-    function flip() {
-      if (busy) return;
-      const next = !on;
-      clickSound(next);
-      if (!next || reduce) { setState(next); return; }
-      // real neon strikes with a few flickers before it stabilises
-      busy = true;
-      const seq = [60, 70, 40, 120, 50, 90, 30];
-      let i = 0, s = true;
-      setState(true);
-      (function step() {
-        if (i >= seq.length) { setState(true); busy = false; return; }
-        s = !s; hero.classList.toggle('on', s); document.body.classList.toggle('sign-on', s); i++;
-        setTimeout(step, seq[i - 1]);
-      })();
-    }
-    $$('[data-switch]').forEach(b => b.addEventListener('click', flip));
-    let saved = false;
-    try { saved = localStorage.getItem('sgNeon') === '1'; } catch (e) {}
-    setState(saved);   // the sign remembers its state from page to page
-
-    /* ---- cable: from the header neon sign down to the wall switch ---- */
-    const cable = $('.hero-cable'), brandSign = $('.site-header .nsign'), wallSw = $('.wall-switch');
-    function drawCable() {
-      if (!cable || !brandSign || !wallSw) return;
-      const hr = hero.getBoundingClientRect(), br = brandSign.getBoundingClientRect(), wr = wallSw.getBoundingClientRect();
-      const sx = br.right - br.width * 0.06 - hr.left, sy = br.bottom - br.height * 0.08 - hr.top;   // bottom-right bolt
-      const ex = wr.left + wr.width / 2 - hr.left, ey = wr.top - hr.top + 1;                      // top of the switch box
-      const scr = $('.scene').getBoundingClientRect();
-      const mob = window.innerWidth < 820;
-      const mx = ex - Math.min(22, wr.width * 3.5);                // runs down the siding just left of the switch
-      const my = scr.top - hr.top + scr.height * 0.655;           // meets the house at the eave over the garage
-      const dx = mx - sx;
-      // a real cable hangs under its own weight: one smooth sagging span from the sign's bolt to the eave
-      const sag = mob ? 30 : 70;
-      const dy = my - sy;
-      const c1x = mob ? sx + dx * 1.6 : sx + dx * 0.45, c1y = mob ? sy + 40 : sy + dy * 0.12;
-      const c2x = mob ? mx + 20 : sx + dx * 0.8,        c2y = mob ? my - 160 : sy + dy * 0.62 + sag * 0.5;
-      const d = `M${sx} ${sy} C${c1x} ${c1y} ${c2x} ${c2y} ${mx} ${my} L${mx} ${ey - 10} Q${mx} ${ey - 3} ${mx + 6} ${ey - 3} L${ex - 4} ${ey - 3} Q${ex} ${ey - 3} ${ex} ${ey}`;
-      cable.querySelectorAll('path').forEach(pth => pth.setAttribute('d', d));
-      cable.querySelectorAll('rect').forEach(r => r.remove());
-      [0.35, 0.7].forEach(t => {                          // two cable clips on the wall run
-        const y = my + (ey - 10 - my) * t;
-        const r = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-        r.setAttribute('x', mx - 3); r.setAttribute('y', y); r.setAttribute('width', 6); r.setAttribute('height', 3); r.setAttribute('rx', 1);
-        cable.appendChild(r);
-      });
-      cable.style.opacity = Math.max(0, 1 - window.scrollY / (window.innerHeight * 0.45));
-    }
-    let cTick = false;
-    const reqCable = () => { if (!cTick) { cTick = true; requestAnimationFrame(() => { drawCable(); cTick = false; }); } };
-    window.addEventListener('scroll', reqCable, { passive: true });
-    window.addEventListener('resize', reqCable);
-    window.addEventListener('load', drawCable);
-    drawCable();
-
-
-    /* subtle parallax of the scene as you scroll away */
-    const scene = $('.scene');
-    if (scene && !reduce) {
-      window.addEventListener('scroll', () => {
-        const y = Math.min(window.scrollY, window.innerHeight);
-        scene.style.translate = `0 ${y * 0.25}px`;
-      }, { passive: true });
-    }
-  } else {
-    // inner pages: the header sign is always lit
-    document.body.classList.add('sign-on');
+  /* scene parallax + objects that get nudged by mouse or finger */
+  const scene = $('.scene');
+  if (scene && !reduce) {
+    window.addEventListener('scroll', () => {
+      const y = Math.min(window.scrollY, window.innerHeight);
+      scene.style.translate = `0 ${y * 0.25}px`;
+    }, { passive: true });
+    const bump = el => { el.classList.add('bump'); clearTimeout(el._t); el._t = setTimeout(() => el.classList.remove('bump'), 380); };
+    $$('.lay').forEach(el => el.addEventListener('touchstart', () => bump(el), { passive: true }));
   }
 
   /* ---------- Floating mini neon signs: foreground objects that roll with the scroll ---------- */

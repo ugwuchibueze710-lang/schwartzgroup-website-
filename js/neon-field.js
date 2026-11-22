@@ -32,7 +32,7 @@
   };
 
   const LAYERS = [
-    { depth: 0.35, n: 95, min: 26, max: 36, alpha: 0.55, far: true },
+    { depth: 0.35, n: 95, min: 28, max: 38, alpha: 0.6, far: true },
     { depth: 0.65, n: 44, min: 40, max: 56, alpha: 0.8 },
     { depth: 1.0,  n: 20, min: 62, max: 84, alpha: 1.0 },
   ];
@@ -128,7 +128,7 @@
       ctx.globalAlpha = L.alpha * (0.85 + 0.15 * pulse);
       ctx.save();
       ctx.translate(px, py); ctx.rotate(it.a);
-      ctx.drawImage(L.far && farSprite ? farSprite : sign, -it.w / 2, -it.h / 2, it.w, it.h);
+      ctx.drawImage(sign, -it.w / 2, -it.h / 2, it.w, it.h);
       ctx.restore();
     }
     ctx.globalAlpha = 1;
