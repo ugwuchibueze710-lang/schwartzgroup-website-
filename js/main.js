@@ -35,10 +35,31 @@
     setTimeout(run, 450);
   })();
 
+  /* ---------- Living tree: wind gusts, leaf flutter, bends when you scroll ---------- */
+  const sway = $('.tree-sway');
+  if (sway && !reduce) {
+    let bend = 0, bendV = 0, last = window.scrollY, gust = 0, gustTarget = 0, nextGust = 0;
+    const tick = t => {
+      const s = t / 1000;
+      // wind: slow breathing sway + quicker shiver + random gusts
+      if (s > nextGust) { gustTarget = (Math.random() * 1.4 + 0.4) * (Math.random() < .5 ? -1 : 1); nextGust = s + 2.5 + Math.random() * 4; }
+      gustTarget *= 0.985; gust += (gustTarget - gust) * 0.04;
+      const wind = Math.sin(s * 0.9) * 0.45 + Math.sin(s * 2.3 + 1.7) * 0.18 + Math.sin(s * 5.1) * 0.05 + gust;
+      // scroll: the tree is pushed the way you scroll and springs back
+      const dy = window.scrollY - last; last = window.scrollY;
+      bendV += Math.max(-6, Math.min(6, dy)) * 0.05;
+      bendV += -bend * 0.06; bendV *= 0.88; bend += bendV;
+      const ang = Math.max(-3.2, Math.min(3.2, wind + bend));
+      sway.style.transform = `rotate(${ang.toFixed(3)}deg) skewX(${(ang * 0.35).toFixed(3)}deg)`;
+      requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  }
+
   /* scene parallax + objects that get nudged by mouse or finger */
   const scene = $('.scene');
   if (scene && !reduce) {
-    window.addEventListener('scroll', () => {
+    if (window.innerWidth > 820) window.addEventListener('scroll', () => {
       const y = Math.min(window.scrollY, window.innerHeight);
       scene.style.translate = `0 ${y * 0.25}px`;
     }, { passive: true });
