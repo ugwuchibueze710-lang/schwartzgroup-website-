@@ -370,7 +370,7 @@ p{margin:0 0 1em}
   :root{--header-h:80px}
   .brand .nsign{width:122px}
   .hero{min-height:640px}
-  .scene{width:calc(68svh * 1.5006);transform:translateX(-46.5%)}
+  .scene{width:128vw;transform:translateX(-51%)}
   .hero-copy{left:6vw;right:6vw;top:calc(var(--header-h) + 18px);max-width:none}
   .hero::after{background:linear-gradient(180deg,rgba(6,12,34,.35),transparent 45%)}
   .loupe{right:auto;left:4vw;flex-direction:row-reverse;text-align:left}
@@ -493,3 +493,13 @@ main,.site-footer,.cta-band{position:relative;z-index:1}
 
 /* no blur anywhere on the small signs */
 .emblem.near,.emblem.far{filter:none}
+@media (max-width:820px){
+  .hero{min-height:0;height:auto;padding-bottom:calc(128vw / 1.5006)}
+  .hero-inner{min-height:0;height:auto}
+  .hero-copy{position:relative;top:auto;left:auto;right:auto;padding:calc(var(--header-h) + 18px) 6vw 26px}
+  .hero-inner .hero-copy{top:auto;bottom:auto;padding-bottom:26px}
+  .lay .obj{transform:scaleY(var(--sq)) rotate(var(--r))}
+}
+@media (max-width:820px){
+  .lay{transform:translate(-50%,-50%) scale(1.6)}
+}
